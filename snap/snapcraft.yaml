@@ -29,12 +29,51 @@ apps:
   hotkdump:
     command: bin/hotkdump
     environment:
-      PYTHONPATH: $SNAP/usr/lib/python3/site-packages:$SNAP/usr/lib/python3/dist-packages:$PYTHONPATH
+      PYTHONPATH: $SNAP/lib/python3.10/site-packages:$SNAP/usr/lib/python3/dist-packages:$PYTHONPATH
     plugs:
       - home
       - network
       - network-bind
+  drgn:
+    command: bin/drgn
+    environment:
+      PYTHONPATH: $SNAP/lib/python3.10/site-packages:$SNAP/usr/lib/python3/dist-packages:$PYTHONPATH
 parts:
+  libkdumpfile:
+    source: https://github.com/ptesarik/libkdumpfile.git
+    plugin: autotools
+    autotools-configure-parameters:
+      - --prefix=/
+    build-packages:
+      - shtool
+      - libtool
+      - pkg-config
+      - python3-dev
+      - zlib1g-dev
+      - liblzo2-dev
+      - libzstd-dev
+      - libsnappy-dev
+    stage-packages:
+      - zlib1g
+      - liblzo2-2
+      - libzstd1
+      - libsnappy1v5
+  drgn:
+    source: https://github.com/osandov/drgn.git
+    plugin: python
+    build-packages:
+      - libelf-dev
+      - libdw-dev
+    stage-packages:
+      - libdw1
+      - libelf1
+      - libgomp1
+    stage:
+      - -pyvenv.cfg
+      - -bin/activate*
+      - -**/RECORD
+      - -**/__pycache__
+    after: [libkdumpfile]
   crash:
     source: https://github.com/crash-utility/crash/archive/refs/tags/8.0.3.tar.gz
     plugin: make
@@ -49,6 +88,7 @@ parts:
       - texinfo
       - python3
   hotkdump:
+    after: [drgn]
     plugin: python
     source: .
     build-packages:
@@ -57,3 +97,8 @@ parts:
       # Needed for hotkdump
       - ubuntu-dev-tools
       - dpkg # needed by ubuntu-dev-tools
+    stage:
+      - -pyvenv.cfg
+      - -bin/activate*
+      - -**/RECORD
+      - -**/__pycache__
